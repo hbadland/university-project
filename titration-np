@@ -1,0 +1,65 @@
+import numpy as np
+
+class Titration:
+    def __init__(self, given_tap_state, base_conc, acid_volume, base_volume = 0, solution_color = "Colourless", acid_conc = 0):
+        self.tap_state: bool = given_tap_state
+        self.acid_conc: float = acid_conc
+        self.base_conc: float = base_conc
+        self.acid_volume: float = acid_volume
+        self.base_volume: float = base_volume
+        self.solution_color: str = solution_color
+        self.base_added = 0
+        self.equivalence_reached = False
+        self.pH = 7.0
+
+    def open_tap(self):
+        self.tap_state = True
+
+    def close_tap(self):
+        self.tap_state = False
+
+    def calc_initial_pH(self):
+        if self.acid_conc > 0:
+            return -np.log10(self.acid_conc)
+        else:
+            return 7.0
+
+    def get_solution_color(self):
+        if self.pH < 9.5:
+            return "Colourless"
+        elif self.pH >= 9.5:
+            return "Pink"
+
+    def add_base(self, volume_added):
+        """ Add base, update pH and color accordingly. """
+        if self.tap_state:
+            self.base_added += volume_added
+
+            # Convert to moles
+            moles_base = np.multiply(self.base_conc, self.base_added) / 1000
+            moles_acid = np.multiply(self.acid_conc, self.acid_volume) / 1000
+
+            if moles_base < moles_acid:
+
+                self.pH = -np.log10((moles_acid - moles_base) / (self.acid_volume + self.base_added) * 1000)
+            elif moles_base == moles_acid:
+                self.equivalence_reached = True
+                self.pH = 9.5
+            else:
+                excess_base = moles_base - moles_acid
+                oh_conc = np.divide(excess_base, (self.acid_volume + self.base_added) / 1000)
+                self.pH = 14 + np.log10(oh_conc)
+
+            self.solution_color = self.get_solution_color()
+
+    def check_titration_state(self):
+        print(f"Base added: {self.base_added} mL, pH: {self.pH: .2f}, Colour: {self.solution_color}")
+
+titration = Titration(given_tap_state= True, base_conc= 0.1, acid_conc= 0.1, acid_volume= 50, base_volume=50)
+
+for i in range(1, 200):
+    titration.add_base(1)
+    titration.check_titration_state()
+
+    if titration.equivalence_reached == True:
+        break
